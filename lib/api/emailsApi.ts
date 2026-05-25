@@ -4,9 +4,10 @@ import type { RootState } from "@/lib/store";
 export interface SendEmailRequest {
   subject: string;
   message: string;
-  recipientType: "all" | "students" | "specific" | "multiple";
+  recipientType: "all" | "students" | "specific" | "multiple" | "faculty" | "email";
   specificUser?: string;
   selectedUsers?: string[];
+  faculty?: string;
   sendEmail?: boolean;
   sendNotification?: boolean;
 }
