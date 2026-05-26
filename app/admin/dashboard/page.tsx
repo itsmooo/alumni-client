@@ -32,7 +32,10 @@ function AdminDashboardContent() {
     isLoading: paymentsLoading,
   } = useGetAdminPaymentsQuery({ page: 1, limit: 5 })
 
-  const recentPayments = recentPaymentsData?.data || []
+  const recentPayments =
+    recentPaymentsData?.data?.length
+      ? recentPaymentsData.data
+      : dashboardData?.payments?.recent || []
   const recentEvents = dashboardData?.events?.recent || []
 
   if (error) {

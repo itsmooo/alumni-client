@@ -33,6 +33,10 @@ function DashboardContent() {
 
   const events = eventsData?.data || []
   const payments = paymentsData?.data || []
+  const completedPayments = payments.filter((p) => p.status === "completed")
+  const pendingPayments = payments.filter(
+    (p) => p.status === "pending" || p.status === "processing",
+  )
   const upcomingCount = events.length
 
   const formatCurrency = (amount: number, currency = "USD") =>
@@ -92,8 +96,10 @@ function DashboardContent() {
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{paymentsData?.total ?? payments.length}</div>
-                  <p className="text-xs text-muted-foreground">total transactions</p>
+                  <div className="text-2xl font-bold">{completedPayments.length}</div>
+                  <p className="text-xs text-muted-foreground">
+                    {pendingPayments.length} pending · {paymentsData?.total ?? payments.length} total
+                  </p>
                 </CardContent>
               </Card>
               <Card className="border-0 shadow-lg bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm">

@@ -22,6 +22,9 @@ interface DashboardStatsProps {
     payments?: {
       totalRevenue?: number
       recentRevenue?: number
+      totalPayments?: number
+      totalPaymentsAll?: number
+      pendingPayments?: number
     }
     jobs?: {
       total?: number
@@ -55,6 +58,9 @@ export function DashboardStats({ data }: DashboardStatsProps) {
     payments: {
       totalRevenue: data?.payments?.totalRevenue || 0,
       recentRevenue: data?.payments?.recentRevenue || 0,
+      totalPayments: data?.payments?.totalPayments || 0,
+      totalPaymentsAll: data?.payments?.totalPaymentsAll || 0,
+      pendingPayments: data?.payments?.pendingPayments || 0,
     },
     jobs: {
       total: data?.jobs?.total || 0,
@@ -87,13 +93,13 @@ export function DashboardStats({ data }: DashboardStatsProps) {
     {
       title: "Total Revenue",
       value: formatCurrency(stats.payments.totalRevenue),
-      change: formatCurrency(stats.payments.recentRevenue),
-      changeLabel: "this month",
+      change: `${stats.payments.totalPayments} completed`,
+      changeLabel: `${stats.payments.pendingPayments} pending`,
       icon: DollarSign,
       iconBg: "bg-amber-50 dark:bg-amber-900/20",
       iconColor: "text-amber-600",
       changeColor: "text-green-600",
-      description: "Total revenue generated"
+      description: "Completed payment revenue"
     },
     {
       title: "Job Postings",
