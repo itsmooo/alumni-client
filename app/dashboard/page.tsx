@@ -3,26 +3,48 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Calendar, Users, Briefcase, MessageSquare, Settings, Bell } from "lucide-react"
+import { Calendar, Users, Briefcase, MessageSquare, Settings, Bell, DollarSign, Loader2 } from "lucide-react"
 import { RouteGuard } from "@/components/auth/route-guard"
 import { UserSidebar } from "@/components/user/user-sidebar"
 import { UserNotifications } from "@/components/user/user-notifications"
+import { EventCard } from "@/components/events/event-card"
 import { useSelector } from "react-redux"
 import { type RootState } from "@/lib/store"
+import { useGetEventsQuery } from "@/lib/api/eventsApi"
+import { useGetMyPaymentsQuery } from "@/lib/api/paymentsApi"
+import { format } from "date-fns"
+import Link from "next/link"
 
 function DashboardContent() {
   const { user } = useSelector((state: RootState) => state.auth)
 
+  const {
+    data: eventsData,
+    isLoading: eventsLoading,
+    error: eventsError,
+  } = useGetEventsQuery({ page: 1, limit: 6, upcoming: true })
+
+  const {
+    data: paymentsData,
+    isLoading: paymentsLoading,
+    error: paymentsError,
+  } = useGetMyPaymentsQuery({ page: 1, limit: 5 })
+
+  const events = eventsData?.data || []
+  const payments = paymentsData?.data || []
+  const upcomingCount = events.length
+
+  const formatCurrency = (amount: number, currency = "USD") =>
+    new Intl.NumberFormat("en-US", { style: "currency", currency }).format(amount)
+
   return (
     <div className="flex h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
       <UserSidebar />
-      
+
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="flex-1 overflow-auto p-8">
           <div className="max-w-7xl mx-auto space-y-8">
-            {/* Enhanced Header */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-2">
@@ -35,7 +57,7 @@ function DashboardContent() {
                         Welcome back, {user?.firstName}!
                       </h1>
                       <p className="text-slate-600 dark:text-slate-400 text-lg">
-                        Here's what's happening in your alumni network
+                        Here&apos;s what&apos;s happening in your alumni network
                       </p>
                     </div>
                   </div>
@@ -53,26 +75,25 @@ function DashboardContent() {
               </div>
             </div>
 
-            {/* Quick Stats */}
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
               <Card className="border-0 shadow-lg bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-                  <CardTitle className="text-sm font-medium">My Connections</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <CardTitle className="text-sm font-medium">Upcoming Events</CardTitle>
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">142</div>
-                  <p className="text-xs text-muted-foreground">+12 this month</p>
+                  <div className="text-2xl font-bold">{upcomingCount}</div>
+                  <p className="text-xs text-muted-foreground">available to join</p>
                 </CardContent>
               </Card>
               <Card className="border-0 shadow-lg bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-                  <CardTitle className="text-sm font-medium">Events Attended</CardTitle>
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <CardTitle className="text-sm font-medium">My Payments</CardTitle>
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">8</div>
-                  <p className="text-xs text-muted-foreground">2 upcoming</p>
+                  <div className="text-2xl font-bold">{paymentsData?.total ?? payments.length}</div>
+                  <p className="text-xs text-muted-foreground">total transactions</p>
                 </CardContent>
               </Card>
               <Card className="border-0 shadow-lg bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm">
@@ -81,8 +102,10 @@ function DashboardContent() {
                   <Briefcase className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">3</div>
-                  <p className="text-xs text-muted-foreground">1 pending review</p>
+                  <div className="text-2xl font-bold">—</div>
+                  <p className="text-xs text-muted-foreground">
+                    <Link href="/jobs" className="underline">Browse jobs</Link>
+                  </p>
                 </CardContent>
               </Card>
               <Card className="border-0 shadow-lg bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm">
@@ -91,123 +114,175 @@ function DashboardContent() {
                   <MessageSquare className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">24</div>
-                  <p className="text-xs text-muted-foreground">5 unread</p>
+                  <div className="text-2xl font-bold">—</div>
+                  <p className="text-xs text-muted-foreground">coming soon</p>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Main Content */}
             <Tabs defaultValue="overview" className="space-y-8">
-              <TabsList className="grid w-full max-w-md grid-cols-4 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border-0 shadow-lg">
-                <TabsTrigger 
-                  value="overview" 
-                  className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200"
-                >
-                  Overview
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="events" 
-                  className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200"
-                >
-                  Events
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="connections" 
-                  className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200"
-                >
-                  Connections
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="jobs" 
-                  className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200"
-                >
-                  Job Board
-                </TabsTrigger>
+              <TabsList className="grid w-full max-w-2xl grid-cols-5 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border-0 shadow-lg">
+                <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="events">Events</TabsTrigger>
+                <TabsTrigger value="payments">Payments</TabsTrigger>
+                <TabsTrigger value="connections">Connections</TabsTrigger>
+                <TabsTrigger value="jobs">Job Board</TabsTrigger>
               </TabsList>
 
               <TabsContent value="overview" className="space-y-8">
                 <div className="grid gap-8 md:grid-cols-2">
+                  <UserNotifications />
+
                   <Card className="border-0 shadow-lg bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm">
-                    <CardHeader>
-                      <CardTitle>Recent Activity</CardTitle>
-                      <CardDescription>Your latest interactions</CardDescription>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <div>
+                        <CardTitle>Recent Payments</CardTitle>
+                        <CardDescription>Your latest transactions</CardDescription>
+                      </div>
+                      <p className="text-xs text-muted-foreground">See Payments tab</p>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      <div className="flex items-center space-x-4">
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback>JD</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 space-y-1">
-                          <p className="text-sm font-medium">John Doe connected with you</p>
-                          <p className="text-xs text-muted-foreground">2 hours ago</p>
+                      {paymentsLoading ? (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Loading payments...
                         </div>
-                      </div>
-                      <div className="flex items-center space-x-4">
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback>SM</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 space-y-1">
-                          <p className="text-sm font-medium">Sarah Miller liked your post</p>
-                          <p className="text-xs text-muted-foreground">4 hours ago</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-4">
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback>MB</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 space-y-1">
-                          <p className="text-sm font-medium">Mike Brown registered for Tech Meetup</p>
-                          <p className="text-xs text-muted-foreground">1 day ago</p>
-                        </div>
-                      </div>
+                      ) : paymentsError ? (
+                        <p className="text-sm text-destructive">Could not load payments.</p>
+                      ) : payments.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">No payments yet.</p>
+                      ) : (
+                        payments.slice(0, 3).map((payment) => (
+                          <div key={payment._id} className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm font-medium">
+                                {payment.purpose || payment.type || "Payment"}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {payment.createdAt &&
+                                  format(new Date(payment.createdAt), "MMM d, yyyy")}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-semibold">
+                                {formatCurrency(payment.amount, payment.currency)}
+                              </p>
+                              <Badge variant="secondary" className="text-xs">
+                                {payment.status}
+                              </Badge>
+                            </div>
+                          </div>
+                        ))
+                      )}
                     </CardContent>
                   </Card>
-
-                  <UserNotifications />
                 </div>
-                
+
                 <Card className="border-0 shadow-lg bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm">
-                  <CardHeader>
-                    <CardTitle>Upcoming Events</CardTitle>
-                    <CardDescription>Events you might be interested in</CardDescription>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                      <CardTitle>Upcoming Events</CardTitle>
+                      <CardDescription>Events you can register for</CardDescription>
+                    </div>
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href="/events">View all</Link>
+                    </Button>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium">Alumni Tech Meetup</p>
-                          <p className="text-xs text-muted-foreground">Dec 25, 2024 • 6:00 PM</p>
-                        </div>
-                        <Badge>Attending</Badge>
+                    {eventsLoading ? (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Loading events...
                       </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium">Career Fair 2025</p>
-                          <p className="text-xs text-muted-foreground">Jan 15, 2025 • 10:00 AM</p>
+                    ) : eventsError ? (
+                      <p className="text-sm text-destructive">Could not load events.</p>
+                    ) : events.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No upcoming events right now.</p>
+                    ) : (
+                      events.slice(0, 3).map((event) => (
+                        <div key={event._id} className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium">{event.title}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {event.date?.start &&
+                                format(new Date(event.date.start), "MMM d, yyyy · h:mm a")}
+                            </p>
+                          </div>
+                          <Badge variant="outline">{event.type}</Badge>
                         </div>
-                        <Button variant="outline" size="sm">Register</Button>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium">Annual Gala</p>
-                          <p className="text-xs text-muted-foreground">Feb 14, 2025 • 7:00 PM</p>
-                        </div>
-                        <Button variant="outline" size="sm">Register</Button>
-                      </div>
-                    </div>
+                      ))
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
 
               <TabsContent value="events">
+                {eventsLoading ? (
+                  <div className="flex justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : eventsError ? (
+                  <Card>
+                    <CardContent className="py-8 text-center text-destructive">
+                      Failed to load events. Please try again later.
+                    </CardContent>
+                  </Card>
+                ) : events.length === 0 ? (
+                  <Card>
+                    <CardContent className="py-8 text-center text-muted-foreground">
+                      No upcoming events available.
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    {events.map((event) => (
+                      <EventCard key={event._id} event={event} />
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="payments">
                 <Card className="border-0 shadow-lg bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm">
                   <CardHeader>
-                    <CardTitle>All Events</CardTitle>
-                    <CardDescription>Browse and register for alumni events</CardDescription>
+                    <CardTitle>Payment History</CardTitle>
+                    <CardDescription>Your donations, memberships, and event fees</CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground">Events content coming soon...</p>
+                  <CardContent className="space-y-4">
+                    {paymentsLoading ? (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Loading payments...
+                      </div>
+                    ) : paymentsError ? (
+                      <p className="text-sm text-destructive">Could not load payments.</p>
+                    ) : payments.length === 0 ? (
+                      <p className="text-muted-foreground">No payments yet.</p>
+                    ) : (
+                      payments.map((payment) => (
+                        <div
+                          key={payment._id}
+                          className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0"
+                        >
+                          <div>
+                            <p className="text-sm font-medium">
+                              {payment.purpose || payment.type || "Payment"}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {payment.paymentMethod} ·{" "}
+                              {payment.createdAt &&
+                                format(new Date(payment.createdAt), "MMM d, yyyy h:mm a")}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-semibold">
+                              {formatCurrency(payment.amount, payment.currency)}
+                            </p>
+                            <Badge variant="secondary">{payment.status}</Badge>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -231,7 +306,9 @@ function DashboardContent() {
                     <CardDescription>Find your next career opportunity</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-muted-foreground">Job board content coming soon...</p>
+                    <Button asChild>
+                      <Link href="/jobs">Browse job board</Link>
+                    </Button>
                   </CardContent>
                 </Card>
               </TabsContent>

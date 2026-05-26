@@ -24,6 +24,18 @@ export const paymentsApi = api.injectEndpoints({
         url: "/payments/my-payments",
         params,
       }),
+      transformResponse: (response: {
+        payments?: Payment[]
+        pagination: { page: number; limit: number; total: number; pages: number }
+      }) => ({
+        data: response.payments || [],
+        total: response.pagination.total,
+        currentPage: response.pagination.page,
+        totalPages: response.pagination.pages,
+        limit: response.pagination.limit,
+        hasNextPage: response.pagination.page < response.pagination.pages,
+        hasPrevPage: response.pagination.page > 1,
+      }),
       providesTags: ["Payment"],
     }),
     getPayment: builder.query<Payment, string>({

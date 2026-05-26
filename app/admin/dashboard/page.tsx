@@ -6,7 +6,9 @@ import { DashboardStats } from "@/components/admin/dashboard-stats"
 import { AnalyticsCharts } from "@/components/admin/analytics-charts"
 import { FinancialDashboard } from "@/components/admin/financial-dashboard"
 
-import { useGetDashboardStatsQuery } from "@/lib/api/adminApi"
+import { useGetDashboardStatsQuery, useGetAdminPaymentsQuery } from "@/lib/api/adminApi"
+import { format } from "date-fns"
+import Link from "next/link"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle, RefreshCw, BarChart3, DollarSign, MessageSquare, TrendingUp, Activity, Users, Calendar } from "lucide-react"
@@ -24,6 +26,14 @@ function AdminDashboardContent() {
     error,
     refetch,
   } = useGetDashboardStatsQuery({})
+
+  const {
+    data: recentPaymentsData,
+    isLoading: paymentsLoading,
+  } = useGetAdminPaymentsQuery({ page: 1, limit: 5 })
+
+  const recentPayments = recentPaymentsData?.data || []
+  const recentEvents = dashboardData?.events?.recent || []
 
   if (error) {
     return (
@@ -176,6 +186,107 @@ function AdminDashboardContent() {
                 {/* Analytics Charts */}
                 <div className="grid gap-8 md:grid-cols-1">
                   <AnalyticsCharts data={dashboardData} />
+                </div>
+
+                <div className="grid gap-8 lg:grid-cols-2">
+                  <Card className="border border-slate-100 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <div>
+                        <CardTitle className="text-lg font-semibold">Recent Events</CardTitle>
+                        <p className="text-sm text-slate-500 mt-1">Latest events in the system</p>
+                      </div>
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href="/admin/events">View all</Link>
+                      </Button>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {recentEvents.length === 0 ? (
+                        <p className="text-sm text-slate-500">No events yet.</p>
+                      ) : (
+                        recentEvents.map((event: {
+                          _id: string
+                          title: string
+                          type?: string
+                          date?: { start?: string }
+                          organizer?: { firstName?: string; lastName?: string }
+                        }) => (
+                          <div
+                            key={event._id}
+                            className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 last:border-0 last:pb-0"
+                          >
+                            <div>
+                              <p className="text-sm font-medium text-slate-900 dark:text-white">{event.title}</p>
+                              <p className="text-xs text-slate-500">
+                                {event.type}
+                                {event.date?.start &&
+                                  ` · ${format(new Date(event.date.start), "MMM d, yyyy")}`}
+                                {event.organizer &&
+                                  ` · ${event.organizer.firstName} ${event.organizer.lastName}`}
+                              </p>
+                            </div>
+                            <Badge variant="secondary">{event.type || "event"}</Badge>
+                          </div>
+                        ))
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border border-slate-100 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <div>
+                        <CardTitle className="text-lg font-semibold">Recent Payments</CardTitle>
+                        <p className="text-sm text-slate-500 mt-1">Latest completed transactions</p>
+                      </div>
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href="/admin/payments">View all</Link>
+                      </Button>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {paymentsLoading ? (
+                        <p className="text-sm text-slate-500">Loading payments...</p>
+                      ) : recentPayments.length === 0 ? (
+                        <p className="text-sm text-slate-500">No payments yet.</p>
+                      ) : (
+                        recentPayments.map((payment: {
+                          _id: string
+                          amount: number
+                          currency?: string
+                          status: string
+                          type?: string
+                          purpose?: string
+                          createdAt: string
+                        }) => (
+                          <div
+                            key={payment._id}
+                            className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 last:border-0 last:pb-0"
+                          >
+                            <div>
+                              <p className="text-sm font-medium text-slate-900 dark:text-white">
+                                {payment.purpose || payment.type || "Payment"}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                {format(new Date(payment.createdAt), "MMM d, yyyy h:mm a")}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                                {new Intl.NumberFormat("en-US", {
+                                  style: "currency",
+                                  currency: payment.currency || "USD",
+                                }).format(payment.amount)}
+                              </p>
+                              <Badge
+                                variant={payment.status === "completed" ? "default" : "secondary"}
+                                className="text-xs"
+                              >
+                                {payment.status}
+                              </Badge>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </CardContent>
+                  </Card>
                 </div>
               </TabsContent>
 
